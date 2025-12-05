@@ -6,7 +6,7 @@ LABEL maintainer="ghitabellamine66@gmail.com"
 LABEL description="Library Management System App"
 
 # Copier le jar compilé dans le conteneur
-COPY target/librarymanagementsystem-ci-cd-*.jar /app/app.jar
+COPY target/librarymanagementsystem-0.0.1-SNAPSHOT.jar /app/app.jar
 
 WORKDIR /app
 
