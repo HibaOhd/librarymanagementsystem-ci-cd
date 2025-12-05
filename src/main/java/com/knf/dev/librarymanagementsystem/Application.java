@@ -2,7 +2,6 @@ package com.knf.dev.librarymanagementsystem;
 
 import java.util.Arrays;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,22 +20,27 @@ import com.knf.dev.librarymanagementsystem.service.BookService;
 @SpringBootApplication
 public class Application {
 
-	@Autowired
-	private BCryptPasswordEncoder passwordEncoder;
+	private final BCryptPasswordEncoder passwordEncoder;
+	private final BookService bookService;
+	private final UserRepository userRepository;
 
-	@Autowired
-	private BookService bookService;
-
-	@Autowired
-	private UserRepository userRepository;
+	//Constructor injection (fixes SonarQube issues)
+	public Application(BCryptPasswordEncoder passwordEncoder,
+	                   BookService bookService,
+	                   UserRepository userRepository) {
+		this.passwordEncoder = passwordEncoder;
+		this.bookService = bookService;
+		this.userRepository = userRepository;
+	}
 
 	public static void main(String[] args) {
+		// Removed parentheses around args (Sonar fix)
 		SpringApplication.run(Application.class, args);
 	}
 
 	@Bean
 	public CommandLineRunner initialCreate() {
-		return (args) -> {
+		return args -> {
 
 			var book = new Book("AP1287", "Spring in Action ", "CXEF12389", "Book description");
 			book.addAuthors(new Author("Matt", "dummy description"));
@@ -56,10 +60,15 @@ public class Application {
 			book2.addPublishers(new Publisher("publisher3"));
 			bookService.createBook(book2);
 
-			var user = new User("admin", "admin", "admin@admin.in", passwordEncoder.encode("Temp123"),
-					Arrays.asList(new Role("ROLE_ADMIN")));
-			userRepository.save(user);
+			var user = new User(
+				"admin",
+				"admin",
+				"admin@admin.in",
+				passwordEncoder.encode("Temp123"),
+				Arrays.asList(new Role("ROLE_ADMIN"))
+			);
 
+			userRepository.save(user);
 		};
 	}
 }
