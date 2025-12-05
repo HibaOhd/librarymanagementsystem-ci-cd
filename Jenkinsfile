@@ -10,7 +10,7 @@ pipeline {
         stage('Clone repository') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/HibaOhd/library-management-ci-cd.git'
+                    url: 'https://github.com/HibaOhd/librarymanagementsystem-ci-cd.git'
             }
         }
         stage('Compile') {
