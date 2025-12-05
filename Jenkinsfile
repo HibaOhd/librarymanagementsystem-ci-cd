@@ -46,17 +46,22 @@ pipeline {
         }
 
         stage('Dockerize') {
-            steps {
-                script {
-                   
-                    // Build l'image Docker avec le tag correspondant au numéro de build Jenkins
-                    bat 'docker build -t ghita/library-management:%BUILD_NUMBER% .'
-
-                    // Pusher l'image sur Docker Hub
-                    bat 'docker push ghita/library-management:%BUILD_NUMBER%'
-                }
+        steps {
+        script {
+            // login to Docker Hub
+            withCredentials([usernamePassword(credentialsId: 'dockerhub_credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
             }
+
+            // build image
+            bat 'docker build -t ghitabellamine2005/library-management:8 .'
+
+            // push image
+            bat 'docker push ghitabellamine2005/library-management:8'
         }
+    }
+}
+
     }
 
     post {
