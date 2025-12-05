@@ -13,11 +13,13 @@ pipeline {
                     url: 'https://github.com/HibaOhd/librarymanagementsystem-ci-cd.git'
             }
         }
+
         stage('Compile') {
             steps {
                 bat 'mvn clean compile'
             }
         }
+
         stage('Run tests') {
             steps {
                 bat 'mvn test'
@@ -28,11 +30,13 @@ pipeline {
                 }
             }
         }
+
         stage('Build package') {
             steps {
                 bat 'mvn package -DskipTests=false'
             }
         }
+
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('LocalSonar') {
@@ -40,7 +44,21 @@ pipeline {
                 }
             }
         }
+
+        stage('Dockerize') {
+            steps {
+                script {
+                   
+                    // Build l'image Docker avec le tag correspondant au numéro de build Jenkins
+                    bat 'docker build -t ghita/library-management:%BUILD_NUMBER% .'
+
+                    // Pusher l'image sur Docker Hub
+                    bat 'docker push ghita/library-management:%BUILD_NUMBER%'
+                }
+            }
+        }
     }
+
     post {
         success {
             echo "Build successful!"
