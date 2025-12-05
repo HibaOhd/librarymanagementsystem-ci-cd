@@ -19,78 +19,77 @@ import com.knf.dev.librarymanagementsystem.service.AuthorService;
 @Controller
 public class AuthorController {
 
-	private final AuthorService authorService;
+private final AuthorService authorService;
+private static final String AUTHOR_ATTR = "author";  //Constant for the "author" attribute
 
-	public AuthorController(AuthorService authorService) {
-		this.authorService = authorService;
-	}
+public AuthorController(AuthorService authorService) {
+    this.authorService = authorService;
+}
 
-	@RequestMapping("/authors")
-	public String findAllAuthors(Model model, @RequestParam("page") Optional<Integer> page,
-			@RequestParam("size") Optional<Integer> size) {
+@RequestMapping("/authors")
+public String findAllAuthors(Model model, @RequestParam("page") Optional<Integer> page,
+        @RequestParam("size") Optional<Integer> size) {
 
-		var currentPage = page.orElse(1);
-		var pageSize = size.orElse(5);
-		var bookPage = authorService.findPaginated(PageRequest.of(currentPage - 1, pageSize));
+    var currentPage = page.orElse(1);
+    var pageSize = size.orElse(5);
+    var bookPage = authorService.findPaginated(PageRequest.of(currentPage - 1, pageSize));
 
-		model.addAttribute("authors", bookPage);
+    model.addAttribute("authors", bookPage);
 
-		int totalPages = bookPage.getTotalPages();
-		if (totalPages > 0) {
-			var pageNumbers = IntStream.rangeClosed(1, totalPages).boxed().collect(Collectors.toList());
-			model.addAttribute("pageNumbers", pageNumbers);
-		}
-		return "list-authors";
-	}
+    int totalPages = bookPage.getTotalPages();
+    if (totalPages > 0) {
+        var pageNumbers = IntStream.rangeClosed(1, totalPages).boxed().collect(Collectors.toList());
+        model.addAttribute("pageNumbers", pageNumbers);
+    }
+    return "list-authors";
+}
 
-	@RequestMapping("/author/{id}")
-	public String findAuthorById(@PathVariable("id") Long id, Model model) {
+@RequestMapping("/author/{id}")
+public String findAuthorById(@PathVariable("id") Long id, Model model) {
+    model.addAttribute(AUTHOR_ATTR, authorService.findAuthorById(id));
+    return "list-author";
+}
 
-		model.addAttribute("author", authorService.findAuthorById(id));
-		return "list-author";
-	}
+@GetMapping("/addAuthor")
+public String showCreateForm(Author author) {
+    return "add-author";
+}
 
-	@GetMapping("/addAuthor")
-	public String showCreateForm(Author author) {
-		return "add-author";
-	}
+@RequestMapping("/add-author")
+public String createAuthor(Author author, BindingResult result, Model model) {
+    if (result.hasErrors()) {
+        return "add-author";
+    }
 
-	@RequestMapping("/add-author")
-	public String createAuthor(Author author, BindingResult result, Model model) {
-		if (result.hasErrors()) {
-			return "add-author";
-		}
+    authorService.createAuthor(author);
+    model.addAttribute(AUTHOR_ATTR, authorService.findAllAuthors());
+    return "redirect:/authors";
+}
 
-		authorService.createAuthor(author);
-		model.addAttribute("author", authorService.findAllAuthors());
-		return "redirect:/authors";
-	}
+@GetMapping("/updateAuthor/{id}")
+public String showUpdateForm(@PathVariable("id") Long id, Model model) {
+    model.addAttribute(AUTHOR_ATTR, authorService.findAuthorById(id));
+    return "update-author";
+}
 
-	@GetMapping("/updateAuthor/{id}")
-	public String showUpdateForm(@PathVariable("id") Long id, Model model) {
+@RequestMapping("/update-author/{id}")
+public String updateAuthor(@PathVariable("id") Long id, Author author, BindingResult result, Model model) {
+    if (result.hasErrors()) {
+        author.setId(id);
+        return "update-author";
+    }
 
-		model.addAttribute("author", authorService.findAuthorById(id));
-		return "update-author";
-	}
+    authorService.updateAuthor(author);
+    model.addAttribute(AUTHOR_ATTR, authorService.findAllAuthors());
+    return "redirect:/authors";
+}
 
-	@RequestMapping("/update-author/{id}")
-	public String updateAuthor(@PathVariable("id") Long id, Author author, BindingResult result, Model model) {
-		if (result.hasErrors()) {
-			author.setId(id);
-			return "update-author";
-		}
+@RequestMapping("/remove-author/{id}")
+public String deleteAuthor(@PathVariable("id") Long id, Model model) {
+    authorService.deleteAuthor(id);
 
-		authorService.updateAuthor(author);
-		model.addAttribute("author", authorService.findAllAuthors());
-		return "redirect:/authors";
-	}
-
-	@RequestMapping("/remove-author/{id}")
-	public String deleteAuthor(@PathVariable("id") Long id, Model model) {
-		authorService.deleteAuthor(id);
-
-		model.addAttribute("author", authorService.findAllAuthors());
-		return "redirect:/authors";
-	}
+    model.addAttribute(AUTHOR_ATTR, authorService.findAllAuthors());
+    return "redirect:/authors";
+}
 
 }
