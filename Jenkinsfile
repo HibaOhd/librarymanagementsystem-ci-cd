@@ -15,12 +15,12 @@ pipeline {
         }
         stage('Compile') {
             steps {
-                sh 'mvn clean compile'
+                bat 'mvn clean compile'
             }
         }
         stage('Run tests') {
             steps {
-                sh 'mvn test'
+                bat 'mvn test'
             }
             post {
                 always {
@@ -30,13 +30,13 @@ pipeline {
         }
         stage('Build package') {
             steps {
-                sh 'mvn package -DskipTests=false'
+                bat 'mvn package -DskipTests=false'
             }
         }
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('LocalSonar') {
-                    sh 'mvn sonar:sonar'
+                    bat 'mvn sonar:sonar'
                 }
             }
         }
