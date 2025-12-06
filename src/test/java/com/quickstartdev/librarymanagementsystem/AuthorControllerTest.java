@@ -3,9 +3,9 @@ package com.knf.dev.librarymanagementsystem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.knf.dev.librarymanagementsystem.service.AuthorService;
-import com.knf.dev.librarymanagementsystem.entity.Author;
 import com.knf.dev.librarymanagementsystem.controller.AuthorController;
+import com.knf.dev.librarymanagementsystem.entity.Author;
+import com.knf.dev.librarymanagementsystem.service.AuthorService;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -24,26 +24,27 @@ class AuthorControllerTest {
 
     @MockBean
     private AuthorService authorService;
+
     @Test
     void testFindAuthorById_Existing() throws Exception {
         Author a = new Author();
         a.setId(1L);
         a.setName("Some Author");
-        Mockito.when(authorService.findAuthorById(1L))
+
+        Mockito.when(authorService.findAuthorById(Mockito.eq(1L)))
                .thenReturn(Optional.of(a));
-    
+
         mockMvc.perform(get("/author/1"))
-            .andExpect(status().isOk())
-            .andExpect(model().attributeExists("author"))
-            .andExpect(view().name("list-author"));
+               .andExpect(status().isOk())
+               .andExpect(model().attributeExists("author"))
+               .andExpect(view().name("list-author"));
     }
 
     @Test
-    void testFindAllAuthors() throws Exception {
-
+    void testFindAllAuthorsView() throws Exception {
         mockMvc.perform(get("/authors"))
-            .andExpect(status().isOk())
-            .andExpect(model().attributeExists("authors"))
-            .andExpect(view().name("list-authors"));
+               .andExpect(status().isOk())
+               .andExpect(model().attributeExists("authors"))
+               .andExpect(view().name("list-authors"));
     }
 }
