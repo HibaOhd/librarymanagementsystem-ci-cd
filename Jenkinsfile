@@ -34,7 +34,11 @@ pipeline {
 
         stage('Build package') {
             steps {
-                bat 'mvn package -DskipTests=false'
+                //Skip tests here because they already ran in the previous stage
+                bat 'mvn package -DskipTests'
+                
+                //Check if JAR was created successfully
+                bat 'if exist target\\librarymanagementsystem-0.0.1-SNAPSHOT.jar echo JAR created successfully'
             }
         }
 
