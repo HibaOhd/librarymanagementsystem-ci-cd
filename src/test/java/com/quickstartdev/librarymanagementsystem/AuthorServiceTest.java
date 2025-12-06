@@ -52,6 +52,7 @@ class AuthorServiceTest {
         a.setId(1L);
         a.setName("Some Author");
 
+        // Service method returns Optional<Author>
         when(authorRepository.findById(1L)).thenReturn(Optional.of(a));
 
         Optional<Author> result = authorService.findAuthorById(1L);
