@@ -127,15 +127,18 @@ pipeline {
 stage('Expose Grafana') {
     steps {
         script {
-            withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
-                bat """
-                    @echo off
-                    echo [Grafana] Starting port-forward...
-                    start /B kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" port-forward svc/monitoring-grafana 3000:80 -n monitoring
-                    timeout /t 3 /nobreak >nul
-                    echo [Grafana] Port-forward running in background (http://localhost:3000).
-                """
-            }
+            echo ""
+            echo "✅ Monitoring stack deployed successfully!"
+            echo ""
+            echo "📊 To access Grafana:"
+            echo "   1. Open PowerShell or CMD"
+            echo "   2. Run:"
+            echo "        kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring"
+            echo "   3. Open in browser: http://localhost:3000"
+            echo "      → Username: admin"
+            echo "      → Password: prom-operator"
+            echo ""
+            echo "ℹ️ Leave the port-forward command running in the terminal."
         }
     }
 }
