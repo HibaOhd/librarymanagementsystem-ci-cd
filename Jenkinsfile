@@ -6,6 +6,10 @@ pipeline {
         jdk 'jdk17'
     }
 
+    environment {
+        KUBECONFIG_PATH = "${WORKSPACE}\\kubeconfig"
+    }
+
     stages {
 
         stage('Clone repository') {
@@ -35,7 +39,6 @@ pipeline {
         stage('Build package') {
             steps {
                 bat 'mvn package -DskipTests'
-                bat 'if exist target\\librarymanagementsystem-0.0.1-SNAPSHOT.jar echo JAR created successfully'
             }
         }
 
@@ -64,15 +67,15 @@ pipeline {
             steps {
                 script {
 
-                    // Use Kubernetes API token
-                    withCredentials([string(credentialsId: 'k8s-token', variable: 'K8S_TOKEN')]) {
+                    // Extract kubeconfig into workspace
+                    withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECFG')]) {
+                        bat "copy %KUBECFG% %KUBECONFIG_PATH%"
+                        bat "set KUBECONFIG=%KUBECONFIG_PATH%"
 
-                        // Apply manifests to Docker Desktop Kubernetes (skip TLS verification)
-                        bat """
-                        kubectl apply --server=https://127.0.0.1:6443 --token=%K8S_TOKEN% --insecure-skip-tls-verify=true -f deployment.yaml
-                        kubectl apply --server=https://127.0.0.1:6443 --token=%K8S_TOKEN% --insecure-skip-tls-verify=true -f service.yaml
-                        kubectl get pods --server=https://127.0.0.1:6443 --token=%K8S_TOKEN% --insecure-skip-tls-verify=true
-                        """
+                        // Now kubectl works exactly like your machine
+                        bat "kubectl apply -f deployment.yaml"
+                        bat "kubectl apply -f service.yaml"
+                        bat "kubectl get pods"
                     }
                 }
             }
