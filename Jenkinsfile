@@ -82,6 +82,8 @@ pipeline {
                     echo [🚀] Applying deployment and service manifests...
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f deployment.yaml
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f service.yaml
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f ingress.yaml
+
 
                     echo.
                     echo [📌] Checking deployed resources...
