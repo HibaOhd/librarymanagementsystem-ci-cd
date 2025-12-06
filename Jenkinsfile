@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        KUBECONFIG_PATH = "${WORKSPACE}\\kubeconfig"
+        KUBECONFIG = "${WORKSPACE}\\kubeconfig" // make kubeconfig available in all steps
     }
 
     stages {
@@ -39,6 +39,7 @@ pipeline {
         stage('Build package') {
             steps {
                 bat 'mvn package -DskipTests'
+                bat 'if exist target\\librarymanagementsystem-0.0.1-SNAPSHOT.jar echo JAR created successfully'
             }
         }
 
@@ -64,30 +65,31 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-    steps {
-        script {
-            // Copy kubeconfig and set env variable
-            bat 'copy C:\\Users\\HP\\.kube\\config %WORKSPACE%\\kubeconfig'
-            bat 'set KUBECONFIG=%WORKSPACE%\\kubeconfig'
+            steps {
+                script {
+                    // Copy kubeconfig to workspace
+                    bat 'copy C:\\Users\\HP\\.kube\\config %WORKSPACE%\\kubeconfig'
 
-            // Apply Kubernetes manifests
-            bat 'kubectl apply -f deployment.yaml'
-            bat 'kubectl apply -f service.yaml'
-
-            // Check pod status
-            bat 'kubectl get pods'
+                    // Deploy app and service in one bat block so KUBECONFIG is used
+                    bat """
+                        set KUBECONFIG=%WORKSPACE%\\kubeconfig
+                        kubectl apply -f deployment.yaml
+                        kubectl apply -f service.yaml
+                        kubectl get pods
+                    """
+                }
+            }
         }
-    }
-}
-
 
         stage('Deploy Monitoring Stack') {
             steps {
                 script {
                     bat 'helm repo add prometheus-community https://prometheus-community.github.io/helm-charts'
                     bat 'helm repo update'
-                    bat 'kubectl create namespace monitoring || echo "Namespace exists"'
+                    bat 'kubectl create namespace monitoring || echo Namespace exists'
                     bat 'helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring'
+                    // Wait for monitoring pods to be ready
+                    bat 'kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=monitoring -n monitoring --timeout=120s'
                 }
             }
         }
