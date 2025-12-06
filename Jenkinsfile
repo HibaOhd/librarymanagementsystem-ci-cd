@@ -64,28 +64,21 @@ pipeline {
                 }
             }
         }
-       stage('Deploy to Kubernetes') {
+      stage('Deploy to Kubernetes') {
     steps {
         script {
-            // Read deployment.yaml and apply it directly without kubectl validation
-            def deploymentYaml = readFile('deployment.yaml')
-            
-            // Write to a temporary file and apply with --validate=false
-            writeFile file: 'temp-deploy.yaml', text: deploymentYaml
-            
-            bat '''
-                @echo off
-                echo "Direct deployment approach..."
-                
-                rem Use kubectl with docker-desktop context and skip validation
-                kubectl --context=docker-desktop apply -f temp-deploy.yaml --validate=false
-                kubectl --context=docker-desktop apply -f service.yaml --validate=false
-                
-                del temp-deploy.yaml 2>nul
-                
-                echo "Checking if anything was deployed..."
-                kubectl --context=docker-desktop get all 2>nul || echo "Using fallback method"
-            '''
+            // Bind kubeconfig file from Jenkins credentials
+            withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                // Use it explicitly in kubectl
+                bat """
+                    echo Deploying using kubeconfig from Jenkins credentials...
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" --context=docker-desktop apply -f deployment.yaml
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" --context=docker-desktop apply -f service.yaml
+
+                    echo Verifying deployment...
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" --context=docker-desktop get deploy,svc
+                """
+            }
         }
     }
 }
