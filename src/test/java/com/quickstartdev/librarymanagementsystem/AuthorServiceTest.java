@@ -52,7 +52,7 @@ class AuthorServiceTest {
         a.setId(1L);
         a.setName("Some Author");
 
-        // Service method returns Optional<Author>
+        // Fix: Return Optional.of(a)
         when(authorRepository.findById(1L)).thenReturn(Optional.of(a));
 
         Optional<Author> result = authorService.findAuthorById(1L);
@@ -79,5 +79,14 @@ class AuthorServiceTest {
         assertNotNull(result);
         assertEquals("New Author", result.getName());
         verify(authorRepository, times(1)).save(a);
+    }
+
+    @Test
+    void testDeleteAuthor() {
+        Long id = 1L;
+        doNothing().when(authorRepository).deleteById(id);
+
+        assertDoesNotThrow(() -> authorService.deleteAuthor(id));
+        verify(authorRepository, times(1)).deleteById(id);
     }
 }
