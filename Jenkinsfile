@@ -98,27 +98,36 @@ pipeline {
 }
         stage('Deploy Monitoring Stack') {
     steps {
-        bat '''
-            @echo off
-            echo "=== SETTING UP MONITORING ==="
-            
-            echo "Adding helm repo..."
-            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-            helm repo update
+        script {
+            // 🔑 CRITICAL: Bind kubeconfig credential here
+            withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
+                bat '''
+                    @echo off
+                    echo === SETTING UP MONITORING ===
+                    echo Using kubeconfig: %KUBECONFIG_FILE%
 
-            echo "Creating monitoring namespace..."
-            kubectl create namespace monitoring 2>nul || echo "Namespace already exists"
+                    :: Set KUBECONFIG for both kubectl and helm
+                    set KUBECONFIG=%KUBECONFIG_FILE%
 
-            echo "Installing lightweight monitoring stack..."
-            helm upgrade --install monitoring prometheus-community/kube-prometheus-stack ^
-              --namespace monitoring ^
-              --set prometheus.prometheusSpec.resources.limits.memory="512Mi" ^
-              --set alertmanager.alertmanagerSpec.resources.limits.memory="256Mi" ^
-              --set nodeExporter.enabled=false ^
-              --timeout 5m0s
+                    echo Adding helm repo...
+                    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>nul || echo Repo already exists
+                    helm repo update
 
-            echo "✅ Monitoring deployed (lightweight mode)."
-        '''
+                    echo Creating monitoring namespace...
+                    kubectl create namespace monitoring 2>nul || echo Namespace already exists
+
+                    echo Installing lightweight monitoring stack...
+                    helm upgrade --install monitoring prometheus-community/kube-prometheus-stack ^
+                      --namespace monitoring ^
+                      --set prometheus.prometheusSpec.resources.limits.memory="512Mi" ^
+                      --set alertmanager.alertmanagerSpec.resources.limits.memory="256Mi" ^
+                      --set nodeExporter.enabled=false ^
+                      --timeout 5m0s
+
+                    echo ✅ Monitoring deployed (lightweight mode).
+                '''
+            }
+        }
     }
 }
         stage('Expose Grafana') {
