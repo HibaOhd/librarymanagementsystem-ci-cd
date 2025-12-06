@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: library-app-deployment
+  labels:
+    app: library-app
+spec:
+  replicas: 2  # Number of pods
+  selector:
+    matchLabels:
+      app: library-app
+  template:
+    metadata:
+      labels:
+        app: library-app
+    spec:
+      containers:
+        - name: library-app
+          image: ghita/library-management:8
+          ports:
+            - containerPort: 9080
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
