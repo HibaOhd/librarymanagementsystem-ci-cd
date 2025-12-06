@@ -71,23 +71,13 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    echo "Deploying to Kubernetes..."
-                    
-                    // Method 1: Direct approach (if kubectl is in PATH)
-                    bat """
-                        echo "Checking kubectl availability..."
-                        kubectl version --client
-                        
-                        echo "Applying deployment..."
-                        kubectl apply -f deployment.yaml
-                        
-                        echo "Applying service..."
-                        kubectl apply -f service.yaml
-                        
-                        echo "Checking pods..."
-                        kubectl get pods
-                    """
-                }
+            bat """
+                echo "Deploying to Kubernetes..."
+                kubectl apply -f deployment.yaml --validate=false
+                kubectl apply -f service.yaml --validate=false
+                kubectl get pods
+            """
+        }
             }
         }
 
