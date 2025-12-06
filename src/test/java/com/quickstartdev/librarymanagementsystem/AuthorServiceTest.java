@@ -45,23 +45,22 @@ class AuthorServiceTest {
         assertEquals(2, result.size());
         verify(authorRepository, times(1)).findAll();
     }
-
     @Test
     void testFindAuthorById_Found() {
         Author a = new Author();
         a.setId(1L);
         a.setName("Some Author");
         when(authorRepository.findById(1L)).thenReturn(Optional.of(a));
-
+    
         Optional<Author> result = authorService.findAuthorById(1L);
         assertTrue(result.isPresent());
         assertEquals("Some Author", result.get().getName());
     }
-
+    
     @Test
     void testFindAuthorById_NotFound() {
         when(authorRepository.findById(999L)).thenReturn(Optional.empty());
-
+    
         Optional<Author> result = authorService.findAuthorById(999L);
         assertTrue(result.isEmpty());
     }
