@@ -145,17 +145,22 @@ stage('Expose Grafana') {
     }
 
     post {
-        success {
-            echo "✅ BUILD AND DEPLOYMENT SUCCESSFUL!"
-            echo "🌐 Application URL: Check with 'kubectl get svc' for the service IP/port"
-            echo "📈 Grafana URL: http://localhost:3000"
-        }
-        failure {
-            echo "❌ BUILD OR DEPLOYMENT FAILED!"
-        }
-        always {
-            // Cleanup
-            bat 'taskkill /F /IM kubectl.exe 2>nul || echo "No port-forward to cleanup"'
-        }
+    success {
+        echo "✅ BUILD AND DEPLOYMENT SUCCESSFUL!"
+        echo ""
+        echo "🔗 Application: http://library.local"
+        echo "   (Add '127.0.0.1 library.local' to hosts file if needed)"
+        echo ""
+        echo "📊 Grafana: http://localhost:3000"
+        echo "   Run manually: kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring"
+        echo "   Login: admin / ghita2005 (or prom-operator)"
     }
+    failure {
+        echo "❌ BUILD OR DEPLOYMENT FAILED!"
+    }
+    always {
+        // Robust cleanup: ignore errors
+        bat 'taskkill /F /IM kubectl.exe 2>nul || exit /b 0'
+    }
+}
 }
