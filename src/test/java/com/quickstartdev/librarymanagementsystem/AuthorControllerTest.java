@@ -24,14 +24,14 @@ class AuthorControllerTest {
 
     @MockBean
     private AuthorService authorService;
-
     @Test
     void testFindAuthorById_Existing() throws Exception {
         Author a = new Author();
         a.setId(1L);
         a.setName("Some Author");
-        Mockito.when(authorService.findAuthorById(1L)).thenReturn(Optional.of(a));
-
+        Mockito.when(authorService.findAuthorById(1L))
+               .thenReturn(Optional.of(a));
+    
         mockMvc.perform(get("/author/1"))
             .andExpect(status().isOk())
             .andExpect(model().attributeExists("author"))
