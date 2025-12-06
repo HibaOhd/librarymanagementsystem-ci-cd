@@ -7,15 +7,12 @@ pipeline {
     }
 
     environment {
-        // Path in Jenkins workspace where kubeconfig or token will be stored
-        KUBECONFIG_PATH = "${WORKSPACE}\\kubeconfig"
-        K8S_TOKEN = credentials('k8s-token') // Replace with your Jenkins secret ID for the token
-        K8S_SERVER = 'https://127.0.0.1:6443' // Docker Desktop Kubernetes API
-        K8S_NAMESPACE = 'default' // Change if you want another namespace
+        // Remove custom kubeconfig setup - use Docker Desktop's default
+        DOCKER_REGISTRY = 'ghitabellamine2005'
+        IMAGE_TAG = '8'
     }
 
     stages {
-
         stage('Clone repository') {
             steps {
                 git branch: 'main',
@@ -58,11 +55,15 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                        bat """
+                            docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                        """
                     }
 
-                    bat 'docker build -t ghitabellamine2005/library-management:8 .'
-                    bat 'docker push ghitabellamine2005/library-management:8'
+                    bat """
+                        docker build -t ${DOCKER_REGISTRY}/library-management:${IMAGE_TAG} .
+                        docker push ${DOCKER_REGISTRY}/library-management:${IMAGE_TAG}
+                    """
                 }
             }
         }
@@ -70,36 +71,42 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    // Create kubeconfig with token dynamically
+                    echo "Deploying to Kubernetes..."
+                    
+                    // Method 1: Direct approach (if kubectl is in PATH)
                     bat """
-                    echo apiVersion: v1 > %KUBECONFIG_PATH%
-                    echo kind: Config >> %KUBECONFIG_PATH%
-                    echo clusters: >> %KUBECONFIG_PATH%
-                    echo - name: local >> %KUBECONFIG_PATH%
-                    echo   cluster: >> %KUBECONFIG_PATH%
-                    echo     server: ${K8S_SERVER} >> %KUBECONFIG_PATH%
-                    echo     insecure-skip-tls-verify: true >> %KUBECONFIG_PATH%
-                    echo contexts: >> %KUBECONFIG_PATH%
-                    echo - name: local >> %KUBECONFIG_PATH%
-                    echo   context: >> %KUBECONFIG_PATH%
-                    echo     cluster: local >> %KUBECONFIG_PATH%
-                    echo     user: local-user >> %KUBECONFIG_PATH%
-                    echo current-context: local >> %KUBECONFIG_PATH%
-                    echo users: >> %KUBECONFIG_PATH%
-                    echo - name: local-user >> %KUBECONFIG_PATH%
-                    echo   user: >> %KUBECONFIG_PATH%
-                    echo     token: ${K8S_TOKEN} >> %KUBECONFIG_PATH%
+                        echo "Checking kubectl availability..."
+                        kubectl version --client
+                        
+                        echo "Applying deployment..."
+                        kubectl apply -f deployment.yaml
+                        
+                        echo "Applying service..."
+                        kubectl apply -f service.yaml
+                        
+                        echo "Checking pods..."
+                        kubectl get pods
                     """
+                }
+            }
+        }
 
-                    // Set KUBECONFIG environment variable
-                    bat 'set KUBECONFIG=%KUBECONFIG_PATH%'
-
-                    // Apply manifests
-                    bat "kubectl apply -f deployment.yaml -n ${K8S_NAMESPACE}"
-                    bat "kubectl apply -f service.yaml -n ${K8S_NAMESPACE}"
-
-                    // Check pods
-                    bat "kubectl get pods -n ${K8S_NAMESPACE}"
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    bat """
+                        echo "Waiting for pods to be ready..."
+                        timeout /t 30 /nobreak
+                        
+                        echo "Current pod status:"
+                        kubectl get pods -o wide
+                        
+                        echo "Service details:"
+                        kubectl get svc
+                        
+                        echo "Deployment status:"
+                        kubectl get deployments
+                    """
                 }
             }
         }
@@ -107,10 +114,17 @@ pipeline {
         stage('Deploy Monitoring Stack') {
             steps {
                 script {
-                    bat 'helm repo add prometheus-community https://prometheus-community.github.io/helm-charts'
-                    bat 'helm repo update'
-                    bat "kubectl create namespace monitoring || echo Namespace exists"
-                    bat 'helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring'
+                    bat """
+                        echo "Setting up monitoring..."
+                        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+                        helm repo update
+                        
+                        rem Create namespace if not exists
+                        kubectl create namespace monitoring 2>nul || echo "Namespace already exists"
+                        
+                        rem Install/upgrade monitoring stack
+                        helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring --wait
+                    """
                 }
             }
         }
@@ -118,20 +132,35 @@ pipeline {
         stage('Expose Grafana') {
             steps {
                 script {
-                    echo "Access Grafana at http://localhost:3000"
-                    bat 'start cmd /k "kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring"'
+                    bat """
+                        echo "Setting up port forwarding for Grafana..."
+                        echo "Grafana will be available at: http://localhost:3000"
+                        echo "Username: admin"
+                        echo "Password: prom-operator"
+                        
+                        rem Start port-forward in background
+                        start /B kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring
+                        
+                        rem Give it time to establish connection
+                        timeout /t 5 /nobreak
+                    """
                 }
             }
         }
-
     }
 
     post {
         success {
             echo "Build, deploy, and monitoring setup completed successfully!"
+            echo " Application available at: http://localhost:9080 (or your service port)"
+            echo " Grafana available at: http://localhost:3000"
         }
         failure {
-            echo "Build or deployment failed!"
+            echo " Build or deployment failed!"
+        }
+        always {
+            // Cleanup port forwarding if needed
+            bat 'taskkill /F /IM kubectl.exe 2>nul || echo "No kubectl port-forward to cleanup"'
         }
     }
 }
