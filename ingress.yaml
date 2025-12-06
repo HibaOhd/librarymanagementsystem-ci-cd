@@ -7,7 +7,7 @@ spec:
     - host: library.local
       http:
         paths:
-          - path: /
+          - path: /login
             pathType: Prefix
             backend:
               service:
