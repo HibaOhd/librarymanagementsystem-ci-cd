@@ -63,8 +63,8 @@ pipeline {
             steps {
                 script {
                     // Apply Kubernetes manifests
-                    bat 'kubectl apply -f library-deployment.yaml'
-                    bat 'kubectl apply -f library-service.yaml'
+                    bat 'kubectl apply -f deployment.yaml'
+                    bat 'kubectl apply -f service.yaml'
 
                     // Check pod status
                     bat 'kubectl get pods'
