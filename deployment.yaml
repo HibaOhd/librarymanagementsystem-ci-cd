@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: library-app
-          image: ghita/library-management:8
+          image: ghitabellamine2005/library-management:8
           ports:
             - containerPort: 9080
           resources:
