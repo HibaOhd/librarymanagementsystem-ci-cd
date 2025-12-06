@@ -15,6 +15,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
+import java.util.List;
 
 @WebMvcTest(controllers = AuthorController.class)
 class AuthorControllerTest {
@@ -31,6 +32,7 @@ class AuthorControllerTest {
         a.setId(1L);
         a.setName("Some Author");
 
+        // Fix: Return Optional.of(a)
         Mockito.when(authorService.findAuthorById(1L))
                .thenReturn(Optional.of(a));
 
@@ -42,6 +44,15 @@ class AuthorControllerTest {
 
     @Test
     void testFindAllAuthorsView() throws Exception {
+        Author a1 = new Author();
+        a1.setId(1L);
+        a1.setName("Author One");
+        Author a2 = new Author();
+        a2.setId(2L);
+        a2.setName("Author Two");
+
+        Mockito.when(authorService.findAllAuthors()).thenReturn(List.of(a1, a2));
+
         mockMvc.perform(get("/authors"))
                .andExpect(status().isOk())
                .andExpect(model().attributeExists("authors"))
