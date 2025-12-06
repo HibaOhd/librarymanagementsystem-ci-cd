@@ -5,8 +5,8 @@ metadata:
 spec:
   selector:
     app: library-app
-  type: NodePort
   ports:
-    - port: 9080        # Service port
-      targetPort: 9080  # Container port
-      nodePort: 30080   # Access port on your host
+    - protocol: TCP
+      port: 9080       # port inside the cluster
+      targetPort: 9080
+  type: ClusterIP      
