@@ -7,7 +7,8 @@ pipeline {
     }
 
     environment {
-        KUBECONFIG = "${WORKSPACE}\\kubeconfig" // make kubeconfig available in all steps
+        // This will point to the kubeconfig file from Jenkins credentials
+        KUBECONFIG = ''
     }
 
     stages {
@@ -57,7 +58,6 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
                     }
-
                     bat 'docker build -t ghitabellamine2005/library-management:8 .'
                     bat 'docker push ghitabellamine2005/library-management:8'
                 }
@@ -67,16 +67,14 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    // Copy kubeconfig to workspace
-                    bat 'copy C:\\Users\\HP\\.kube\\config %WORKSPACE%\\kubeconfig'
-
-                    // Deploy app and service in one bat block so KUBECONFIG is used
-                    bat """
-                        set KUBECONFIG=%WORKSPACE%\\kubeconfig
-                        kubectl apply -f deployment.yaml
-                        kubectl apply -f service.yaml
-                        kubectl get pods
-                    """
+                    // Use Jenkins secret file for kubeconfig
+                    withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                        bat """
+                            kubectl apply -f deployment.yaml
+                            kubectl apply -f service.yaml
+                            kubectl get pods
+                        """
+                    }
                 }
             }
         }
@@ -86,9 +84,8 @@ pipeline {
                 script {
                     bat 'helm repo add prometheus-community https://prometheus-community.github.io/helm-charts'
                     bat 'helm repo update'
-                    bat 'kubectl create namespace monitoring || echo Namespace exists'
+                    bat 'kubectl create namespace monitoring || echo "Namespace exists"'
                     bat 'helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring'
-                    // Wait for monitoring pods to be ready
                     bat 'kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=monitoring -n monitoring --timeout=120s'
                 }
             }
@@ -102,6 +99,7 @@ pipeline {
                 }
             }
         }
+
     }
 
     post {
