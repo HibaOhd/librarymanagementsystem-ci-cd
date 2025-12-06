@@ -64,22 +64,22 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            steps {
-                script {
+    steps {
+        script {
+            // Copy kubeconfig and set env variable
+            bat 'copy C:\\Users\\HP\\.kube\\config %WORKSPACE%\\kubeconfig'
+            bat 'set KUBECONFIG=%WORKSPACE%\\kubeconfig'
 
-                    // Extract kubeconfig into workspace
-                    withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECFG')]) {
-                        bat "copy %KUBECFG% %KUBECONFIG_PATH%"
-                        bat "set KUBECONFIG=%KUBECONFIG_PATH%"
+            // Apply Kubernetes manifests
+            bat 'kubectl apply -f deployment.yaml'
+            bat 'kubectl apply -f service.yaml'
 
-                        // Now kubectl works exactly like your machine
-                        bat "kubectl apply -f deployment.yaml"
-                        bat "kubectl apply -f service.yaml"
-                        bat "kubectl get pods"
-                    }
-                }
-            }
+            // Check pod status
+            bat 'kubectl get pods'
         }
+    }
+}
+
 
         stage('Deploy Monitoring Stack') {
             steps {
