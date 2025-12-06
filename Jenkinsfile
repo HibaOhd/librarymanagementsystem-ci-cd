@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        // Remove custom kubeconfig setup - use Docker Desktop's default
+        // Only keep Docker image info
         DOCKER_REGISTRY = 'ghitabellamine2005'
         IMAGE_TAG = '8'
     }
@@ -57,116 +57,101 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         bat """
                             docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                            docker build -t ${DOCKER_REGISTRY}/library-management:${IMAGE_TAG} .
+                            docker push ${DOCKER_REGISTRY}/library-management:${IMAGE_TAG}
                         """
                     }
-
-                    bat """
-                        docker build -t ${DOCKER_REGISTRY}/library-management:${IMAGE_TAG} .
-                        docker push ${DOCKER_REGISTRY}/library-management:${IMAGE_TAG}
-                    """
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
-    steps {
-        script {
-            echo "Deploying to Docker Desktop Kubernetes..."
-            
-            // STOP creating custom kubeconfig - use Docker Desktop's default
-            bat """
-                @echo off
-                echo "=== CLEAN DEPLOYMENT ==="
-                
-                rem 1. REMOVE your custom kubeconfig
-                set KUBECONFIG=
-                
-                rem 2. Use Docker Desktop's default config
-                echo "Using: %USERPROFILE%\\.kube\\config"
-                
-                rem 3. Make sure we're using docker-desktop context
-                kubectl config use-context docker-desktop
-                
-                rem 4. VERIFY the correct API server
-                echo "API Server should be: https://kubernetes.docker.internal:6443"
-                echo "Current API server:"
-                kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
-                
-                rem 5. If wrong, fix it
-                kubectl config set-cluster docker-desktop --server=https://kubernetes.docker.internal:6443
-                
-                rem 6. DEPLOY WITH VALIDATION DISABLED (IMPORTANT!)
-                echo "Applying deployment..."
-                kubectl apply -f deployment.yaml --validate=false
-                
-                echo "Applying service..."
-                kubectl apply -f service.yaml --validate=false
-                
-                rem 7. Check
-                echo "Waiting for pods..."
-                timeout /t 10 /nobreak
-                
-                kubectl get all
-                
-                echo " Done!"
-            """
-        }
-    }
-}
-
-        stage('Verify Deployment') {
+        stage('Verify Docker Desktop') {
             steps {
-                script {
-                    bat """
-                        echo "Waiting for pods to be ready..."
-                        timeout /t 30 /nobreak
-                        
-                        echo "Current pod status:"
-                        kubectl get pods -o wide
-                        
-                        echo "Service details:"
-                        kubectl get svc
-                        
-                        echo "Deployment status:"
-                        kubectl get deployments
-                    """
-                }
+                bat '''
+                    @echo off
+                    echo "=== VERIFYING DOCKER DESKTOP ==="
+                    echo "Checking if Docker Desktop Kubernetes is ready..."
+                    
+                    kubectl config get-contexts
+                    echo.
+                    echo "Current context:"
+                    kubectl config current-context
+                    echo.
+                    echo "Testing connection:"
+                    kubectl get nodes
+                    
+                    if errorlevel 1 (
+                        echo "❌ ERROR: Cannot connect to Docker Desktop Kubernetes!"
+                        echo "Make sure:"
+                        echo "1. Docker Desktop is running"
+                        echo "2. Kubernetes is enabled in Docker Desktop settings"
+                        echo "3. Wait 30 seconds after starting Docker Desktop"
+                        exit 1
+                    ) else (
+                        echo "✅ Docker Desktop Kubernetes is ready!"
+                    )
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                bat '''
+                    @echo off
+                    echo "=== DEPLOYING APPLICATION ==="
+                    
+                    echo "Using context: docker-desktop"
+                    kubectl config use-context docker-desktop
+                    
+                    echo "Deploying deployment.yaml..."
+                    kubectl apply -f deployment.yaml --validate=false
+                    
+                    echo "Deploying service.yaml..."
+                    kubectl apply -f service.yaml --validate=false
+                    
+                    echo "Waiting for pods to start..."
+                    timeout /t 30 /nobreak
+                    
+                    echo "Current status:"
+                    kubectl get all
+                    
+                    echo "✅ Application deployed successfully!"
+                '''
             }
         }
 
         stage('Deploy Monitoring Stack') {
             steps {
-                script {
-                    bat """
-                        echo "Setting up monitoring..."
-                        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-                        helm repo update
-                        
-                        rem Create namespace if not exists
-                        kubectl create namespace monitoring 2>nul || echo "Namespace already exists"
-                        
-                        rem Install/upgrade monitoring stack
-                        helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring --wait
-                    """
-                }
+                bat '''
+                    @echo off
+                    echo "=== SETTING UP MONITORING ==="
+                    
+                    echo "Adding helm repos..."
+                    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+                    helm repo update
+                    
+                    echo "Creating monitoring namespace..."
+                    kubectl create namespace monitoring 2>nul || echo "Namespace already exists"
+                    
+                    echo "Installing monitoring stack..."
+                    helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring
+                    
+                    echo "✅ Monitoring deployed!"
+                '''
             }
         }
 
         stage('Expose Grafana') {
             steps {
                 script {
-                    bat """
-                        echo "Setting up port forwarding for Grafana..."
-                        echo "Grafana will be available at: http://localhost:3000"
-                        echo "Username: admin"
-                        echo "Password: prom-operator"
-                        
-                        rem Start port-forward in background
+                    echo "📊 Grafana will be available at: http://localhost:3000"
+                    echo "Username: admin"
+                    echo "Password: prom-operator"
+                    
+                    bat '''
                         start /B kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring
-                        
-                        rem Give it time to establish connection
-                        timeout /t 5 /nobreak
-                    """
+                        timeout /t 2 /nobreak
+                    '''
                 }
             }
         }
@@ -174,16 +159,16 @@ pipeline {
 
     post {
         success {
-            echo "Build, deploy, and monitoring setup completed successfully!"
-            echo " Application available at: http://localhost:9080 (or your service port)"
-            echo " Grafana available at: http://localhost:3000"
+            echo "✅ BUILD AND DEPLOYMENT SUCCESSFUL!"
+            echo "🌐 Application URL: Check with 'kubectl get svc' for the service IP/port"
+            echo "📈 Grafana URL: http://localhost:3000"
         }
         failure {
-            echo " Build or deployment failed!"
+            echo "❌ BUILD OR DEPLOYMENT FAILED!"
         }
         always {
-            // Cleanup port forwarding if needed
-            bat 'taskkill /F /IM kubectl.exe 2>nul || echo "No kubectl port-forward to cleanup"'
+            // Cleanup
+            bat 'taskkill /F /IM kubectl.exe 2>nul || echo "No port-forward to cleanup"'
         }
     }
 }
