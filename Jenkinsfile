@@ -70,27 +70,27 @@ pipeline {
             withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
                 bat '''
                     @echo off
-                    echo [✅] Deploying to Docker Desktop Kubernetes...
+                    echo  Deploying to Docker Desktop Kubernetes...
                     echo Kubeconfig location: %KUBECONFIG_FILE%
 
                     echo.
-                    echo [🔍] Verifying kubeconfig and context...
+                    echo  Verifying kubeconfig and context...
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" config current-context
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" cluster-info
 
                     echo.
-                    echo [🚀] Applying deployment and service manifests...
+                    echo Applying deployment and service manifests...
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f deployment.yaml
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f service.yaml
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f ingress.yaml
 
 
                     echo.
-                    echo [📌] Checking deployed resources...
+                    echo Checking deployed resources...
                     kubectl --kubeconfig="%KUBECONFIG_FILE%" get deploy,svc,pods -o wide
 
                     echo.
-                    echo [✅] Deployment completed successfully.
+                    echo  Deployment completed successfully.
                 '''
             }
         }
