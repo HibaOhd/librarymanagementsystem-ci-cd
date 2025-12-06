@@ -7,7 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
+import org.springframework.beans.factory.annotation.Value;
 import com.knf.dev.librarymanagementsystem.entity.Author;
 import com.knf.dev.librarymanagementsystem.entity.Book;
 import com.knf.dev.librarymanagementsystem.entity.Category;
@@ -19,7 +19,8 @@ import com.knf.dev.librarymanagementsystem.service.BookService;
 
 @SpringBootApplication
 public class Application {
-
+	@Value("${admin.password}")
+    private String adminPassword;
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final BookService bookService;
 	private final UserRepository userRepository;
@@ -59,16 +60,13 @@ public class Application {
 			book2.addCategories(new Category("Spring category"));
 			book2.addPublishers(new Publisher("publisher3"));
 			bookService.createBook(book2);
-
 			var user = new User(
-				"admin",
-				"admin",
-				"admin@admin.in",
-				passwordEncoder.encode("Temp123"),
-				Arrays.asList(new Role("ROLE_ADMIN"))
+			    "admin",
+			    "admin",
+			    "admin@admin.in",
+			    passwordEncoder.encode(adminPassword),  //use injected value
+			    Arrays.asList(new Role("ROLE_ADMIN"))
 			);
-
-			userRepository.save(user);
 		};
 	}
 }
