@@ -39,7 +39,7 @@ class AuthorServiceTest {
 
         when(authorRepository.findAll()).thenReturn(List.of(a1, a2));
 
-        List<Author> result = authorService.findAllAuthors();  // adjust to actual method name
+        List<Author> result = authorService.findAllAuthors(); 
         assertNotNull(result);
         assertEquals(2, result.size());
         verify(authorRepository, times(1)).findAll();
