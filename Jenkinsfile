@@ -96,39 +96,40 @@ pipeline {
         }
     }
 }
-stage('Deploy Monitoring Stack') {
-    steps {
-        script {
-            withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
-                bat '''
-                    @echo off
-                    echo === SETTING UP MONITORING ===
-                    echo Using kubeconfig: %KUBECONFIG_FILE%
-
-                    :: Set KUBECONFIG for both kubectl and helm
-                    set KUBECONFIG=%KUBECONFIG_FILE%
-
-                    echo Adding helm repo...
-                    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>nul || echo Repo already exists
-                    helm repo update
-
-                    echo Creating monitoring namespace...
-                    kubectl create namespace monitoring 2>nul || echo Namespace already exists
-
-                    echo Installing lightweight monitoring stack...
-                    helm upgrade --install monitoring prometheus-community/kube-prometheus-stack ^
-                      --namespace monitoring ^
-                      --set prometheus.prometheusSpec.resources.limits.memory="512Mi" ^
-                      --set alertmanager.alertmanagerSpec.resources.limits.memory="256Mi" ^
-                      --set nodeExporter.enabled=false ^
-                      --timeout 5m0s
-
-                    echo ✅ Monitoring deployed (lightweight mode).
-                '''
+    stage('Deploy Monitoring Stack') {
+        steps {
+            script {
+                withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
+                    bat '''
+                        @echo off
+                        echo === SETTING UP MONITORING ===
+                        echo Using kubeconfig: %KUBECONFIG_FILE%
+    
+                        :: Set KUBECONFIG for both kubectl and helm
+                        set KUBECONFIG=%KUBECONFIG_FILE%
+    
+                        echo Adding helm repo...
+                        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>nul || echo Repo already exists
+                        helm repo update
+    
+                        echo Creating monitoring namespace...
+                        kubectl create namespace monitoring 2>nul || echo Namespace already exists
+    
+                        echo Installing lightweight monitoring stack...
+                        helm upgrade --install monitoring prometheus-community/kube-prometheus-stack ^
+                          --namespace monitoring ^
+                          --set prometheus.prometheusSpec.resources.limits.memory="512Mi" ^
+                          --set alertmanager.alertmanagerSpec.resources.limits.memory="256Mi" ^
+                          --set nodeExporter.enabled=false ^
+                          --timeout 5m0s
+    
+                        echo ✅ Monitoring deployed (lightweight mode).
+                    '''
+                }
             }
         }
-    }
-}    stage('Expose Grafana') {
+    }    
+stage('Expose Grafana') {
     steps {
         script {
             withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
