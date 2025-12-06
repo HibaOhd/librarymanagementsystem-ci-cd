@@ -6,7 +6,13 @@ pipeline {
         jdk 'jdk17'
     }
 
+    environment {
+        // Kubernetes API server (Docker Desktop default)
+        K8S_SERVER = "https://127.0.0.1:6443"
+    }
+
     stages {
+
         stage('Clone repository') {
             steps {
                 git branch: 'main',
@@ -62,12 +68,14 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    // Apply Kubernetes manifests
-                    bat 'kubectl apply -f deployment.yaml'
-                    bat 'kubectl apply -f service.yaml'
+                    withCredentials([string(credentialsId: 'k8s-token', variable: 'K8S_TOKEN')]) {
+                        // Apply Kubernetes manifests using the token
+                        bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% apply -f deployment.yaml"
+                        bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% apply -f service.yaml"
 
-                    // Check pod status
-                    bat 'kubectl get pods'
+                        // Check pod status
+                        bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% get pods"
+                    }
                 }
             }
         }
@@ -77,9 +85,9 @@ pipeline {
                 script {
                     bat 'helm repo add prometheus-community https://prometheus-community.github.io/helm-charts'
                     bat 'helm repo update'
-                    bat 'kubectl create namespace monitoring || echo "Namespace exists"'
+                    bat 'kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% create namespace monitoring || echo "Namespace exists"'
                     bat 'helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring'
-                    bat 'kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=monitoring -n monitoring --timeout=120s'
+                    bat 'kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% wait --for=condition=ready pod -l app.kubernetes.io/instance=monitoring -n monitoring --timeout=120s'
                 }
             }
         }
@@ -87,9 +95,8 @@ pipeline {
         stage('Expose Grafana') {
             steps {
                 script {
-                    // Port-forward Grafana to localhost:3000
                     echo "Access Grafana at http://localhost:3000"
-                    bat 'start cmd /k "kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring"'
+                    bat 'start cmd /k "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% port-forward svc/monitoring-grafana 3000:80 -n monitoring"'
                 }
             }
         }
