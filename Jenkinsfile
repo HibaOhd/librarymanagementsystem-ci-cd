@@ -97,40 +97,47 @@ pipeline {
     }
 }
         stage('Deploy Monitoring Stack') {
-            steps {
+    steps {
+        bat '''
+            @echo off
+            echo "=== SETTING UP MONITORING ==="
+            
+            echo "Adding helm repo..."
+            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+            helm repo update
+
+            echo "Creating monitoring namespace..."
+            kubectl create namespace monitoring 2>nul || echo "Namespace already exists"
+
+            echo "Installing lightweight monitoring stack..."
+            helm upgrade --install monitoring prometheus-community/kube-prometheus-stack ^
+              --namespace monitoring ^
+              --set prometheus.prometheusSpec.resources.limits.memory="512Mi" ^
+              --set alertmanager.alertmanagerSpec.resources.limits.memory="256Mi" ^
+              --set nodeExporter.enabled=false ^
+              --timeout 5m0s
+
+            echo "✅ Monitoring deployed (lightweight mode)."
+        '''
+    }
+}
+        stage('Expose Grafana') {
+    steps {
+        script {
+            withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
+                echo "📊 Grafana will be available at: http://localhost:3000"
+                echo "Username: admin | Password: prom-operator"
+
                 bat '''
                     @echo off
-                    echo "=== SETTING UP MONITORING ==="
-                    
-                    echo "Adding helm repos..."
-                    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-                    helm repo update
-                    
-                    echo "Creating monitoring namespace..."
-                    kubectl create namespace monitoring 2>nul || echo "Namespace already exists"
-                    
-                    echo "Installing monitoring stack..."
-                    helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring
-                    
-                    echo "✅ Monitoring deployed!"
+                    start /B kubectl --kubeconfig="%KUBECONFIG_FILE%" port-forward svc/monitoring-grafana 3000:80 -n monitoring
+                    timeout /t 3 /nobreak >nul
+                    echo Grafana port-forward started in background.
                 '''
             }
         }
-
-        stage('Expose Grafana') {
-            steps {
-                script {
-                    echo "📊 Grafana will be available at: http://localhost:3000"
-                    echo "Username: admin"
-                    echo "Password: prom-operator"
-                    
-                    bat '''
-                        start /B kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring
-                        timeout /t 2 /nobreak
-                    '''
-                }
-            }
-        }
+    }
+}
     }
 
     post {
