@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.Optional;
+
 import com.knf.dev.librarymanagementsystem.service.AuthorService;
 import com.knf.dev.librarymanagementsystem.entity.Author;
 import com.knf.dev.librarymanagementsystem.repository.AuthorRepository;
@@ -50,7 +51,6 @@ class AuthorServiceTest {
         Author a = new Author();
         a.setId(1L);
         a.setName("Some Author");
-
         when(authorRepository.findById(1L)).thenReturn(Optional.of(a));
 
         Optional<Author> result = authorService.findAuthorById(1L);
