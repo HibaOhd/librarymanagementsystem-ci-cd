@@ -64,31 +64,36 @@ pipeline {
                 }
             }
         }
-      stage('Deploy to Kubernetes') {
+     stage('Deploy to Kubernetes') {
     steps {
         script {
-            // Bind kubeconfig securely from Jenkins credentials (as discussed)
             withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
-                bat """
+                bat '''
                     @echo off
-                    echo " Direct deployment with explicit kubeconfig..."
+                    echo [✅] Deploying to Docker Desktop Kubernetes...
+                    echo Kubeconfig location: %KUBECONFIG_FILE%
 
-                    echo "Kubeconfig file: %KUBECONFIG_FILE%"
-                    echo "Available contexts:"
-                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" config get-contexts
+                    echo.
+                    echo [🔍] Verifying kubeconfig and context...
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" config current-context
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" cluster-info
 
-                    echo "Applying deployment and service..."
-                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" apply -f deployment.yaml
-                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" apply -f service.yaml
+                    echo.
+                    echo [🚀] Applying deployment and service manifests...
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f deployment.yaml
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" apply -f service.yaml
 
-                    echo " Deployment status:"
-                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" get deploy,svc,pods
-                """
+                    echo.
+                    echo [📌] Checking deployed resources...
+                    kubectl --kubeconfig="%KUBECONFIG_FILE%" get deploy,svc,pods -o wide
+
+                    echo.
+                    echo [✅] Deployment completed successfully.
+                '''
             }
         }
     }
 }
-
         stage('Deploy Monitoring Stack') {
             steps {
                 bat '''
