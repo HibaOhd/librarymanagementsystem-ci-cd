@@ -70,8 +70,9 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'k8s-token', variable: 'K8S_TOKEN')]) {
                         // Apply Kubernetes manifests using the token
-                        bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% apply -f deployment.yaml"
-                        bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% apply -f service.yaml"
+                        bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% --insecure-skip-tls-verify apply -f deployment.yaml"
+                        bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% --insecure-skip-tls-verify apply -f service.yaml
+"
 
                         // Check pod status
                         bat "kubectl --server=%K8S_SERVER% --token=%K8S_TOKEN% get pods"
