@@ -5,9 +5,9 @@ import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.Optional;
-import src/main/java/com/knf/dev/librarymanagementsystem/service;
-import src/main/java/com/knf/dev/librarymanagementsystem/entity/Author.java;
-import src/main/java/com/knf/dev/librarymanagementsystem/repository/AuthorRepository.java;
+import com.knf.dev.librarymanagementsystem.service.AuthorService;
+import com.knf.dev.librarymanagementsystem.entity.Author;
+import com.knf.dev.librarymanagementsystem.repository.AuthorRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
