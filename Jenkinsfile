@@ -22,7 +22,7 @@ pipeline {
 
         stage('Run tests') {
             steps {
-                bat 'mvn test'
+                bat 'mvn clean test jacoco:report'
             }
             post {
                 always {
@@ -30,6 +30,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('Build package') {
             steps {
@@ -40,10 +41,11 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('LocalSonar') {
-                    bat 'mvn sonar:sonar'
+                    bat 'mvn sonar:sonar -Dsonar.java.binaries=target/classes -Dsonar.jacoco.reportPaths=target/jacoco.exec'
                 }
             }
         }
+
 
         stage('Dockerize') {
         steps {
