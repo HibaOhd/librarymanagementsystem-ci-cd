@@ -6,9 +6,9 @@ import static org.mockito.Mockito.*;
 import java.util.List;
 import java.util.Optional;
 
-import com.knf.dev.librarymanagementsystem.service.AuthorService;
 import com.knf.dev.librarymanagementsystem.entity.Author;
 import com.knf.dev.librarymanagementsystem.repository.AuthorRepository;
+import com.knf.dev.librarymanagementsystem.service.AuthorService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ class AuthorServiceTest {
     private AuthorRepository authorRepository;
 
     @InjectMocks
-    private AuthorService authorService;  
+    private AuthorService authorService;
 
     @BeforeEach
     void setUp() {
@@ -30,7 +30,7 @@ class AuthorServiceTest {
     }
 
     @Test
-    void testFindAllAuthors_ReturnsAuthorsList() {
+    void testFindAllAuthors_ReturnsList() {
         Author a1 = new Author();
         a1.setId(1L);
         a1.setName("Author One");
@@ -40,27 +40,29 @@ class AuthorServiceTest {
 
         when(authorRepository.findAll()).thenReturn(List.of(a1, a2));
 
-        List<Author> result = authorService.findAllAuthors(); 
-        assertNotNull(result);
-        assertEquals(2, result.size());
+        List<Author> authors = authorService.findAllAuthors();
+        assertNotNull(authors);
+        assertEquals(2, authors.size());
         verify(authorRepository, times(1)).findAll();
     }
+
     @Test
     void testFindAuthorById_Found() {
         Author a = new Author();
         a.setId(1L);
         a.setName("Some Author");
+
         when(authorRepository.findById(1L)).thenReturn(Optional.of(a));
-    
+
         Optional<Author> result = authorService.findAuthorById(1L);
         assertTrue(result.isPresent());
         assertEquals("Some Author", result.get().getName());
     }
-    
+
     @Test
     void testFindAuthorById_NotFound() {
         when(authorRepository.findById(999L)).thenReturn(Optional.empty());
-    
+
         Optional<Author> result = authorService.findAuthorById(999L);
         assertTrue(result.isEmpty());
     }
