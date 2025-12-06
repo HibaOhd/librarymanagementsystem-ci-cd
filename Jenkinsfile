@@ -67,16 +67,22 @@ pipeline {
       stage('Deploy to Kubernetes') {
     steps {
         script {
-            // Bind kubeconfig file from Jenkins credentials
-            withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
-                // Use it explicitly in kubectl
+            // Bind kubeconfig securely from Jenkins credentials (as discussed)
+            withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
                 bat """
-                    echo Deploying using kubeconfig from Jenkins credentials...
-                    kubectl --kubeconfig="%KUBECONFIG_FILE%" --context=docker-desktop apply -f deployment.yaml
-                    kubectl --kubeconfig="%KUBECONFIG_FILE%" --context=docker-desktop apply -f service.yaml
+                    @echo off
+                    echo " Direct deployment with explicit kubeconfig..."
 
-                    echo Verifying deployment...
-                    kubectl --kubeconfig="%KUBECONFIG_FILE%" --context=docker-desktop get deploy,svc
+                    echo "Kubeconfig file: %KUBECONFIG_FILE%"
+                    echo "Available contexts:"
+                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" config get-contexts
+
+                    echo "Applying deployment and service..."
+                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" apply -f deployment.yaml
+                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" apply -f service.yaml
+
+                    echo " Deployment status:"
+                    kubectl --kubeconfig=\"%KUBECONFIG_FILE%\" get deploy,svc,pods
                 """
             }
         }
