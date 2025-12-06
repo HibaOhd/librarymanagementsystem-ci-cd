@@ -31,7 +31,7 @@ class AuthorControllerTest {
         a.setId(1L);
         a.setName("Some Author");
 
-        Mockito.when(authorService.findAuthorById(Mockito.eq(1L)))
+        Mockito.when(authorService.findAuthorById(1L))
                .thenReturn(Optional.of(a));
 
         mockMvc.perform(get("/author/1"))
