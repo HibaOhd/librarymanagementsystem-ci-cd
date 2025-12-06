@@ -3,8 +3,8 @@ package com.knf.dev.librarymanagementsystem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.knf.dev.librarymanagementsystem.service.AuthorService;
-import com.knf.dev.librarymanagementsystem.entity.Author;
+import src/main/java/com/knf/dev/librarymanagementsystem/service;
+import src/main/java/com/knf/dev/librarymanagementsystem/entity/Author.java;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
